@@ -1,0 +1,7 @@
+[package]
+name = "talk_dbg"
+version = "0.1.0"
+authors = ["Levente Kurusa <levex@linux.com>"]
+
+[dependencies]
+libc = "0.2.34"
