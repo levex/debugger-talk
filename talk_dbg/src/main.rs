@@ -56,19 +56,23 @@ fn target_start(target: &String) {
         println!("DBG: debugger attaching to pid {}", target_pid);
 
         unsafe {
-            /* wait for the first ptrace induced block */
-            libc::wait(std::ptr::null_mut());
+            loop {
+                /* wait for the ptrace induced block */
+                libc::wait(std::ptr::null_mut());
 
-            /* the child was blocked, time to read the first syscall # */
-            let orig_eax = libc::ptrace(libc::PTRACE_PEEKUSER, target_pid, 8 * libc::ORIG_RAX, 0);
+                /* the child was blocked, time to read the first syscall # */
+                let orig_eax = libc::ptrace(libc::PTRACE_PEEKUSER, target_pid, 8 * libc::ORIG_RAX, 0);
 
-            println!("DBG: Register RAX had value {} before the target was blocked", orig_eax);
+                println!("DBG: Target invoked system call {}", orig_eax);
 
-            /* let the program continue */
-            libc::ptrace(libc::PTRACE_CONT, target_pid, 0, 0);
+                if orig_eax == -1 || orig_eax == 60 || orig_eax == 231 {
+                    println!("DBG: Target has exited");
+                    break;
+                }
 
-            /* wait for it to die... */
-            libc::wait(std::ptr::null_mut());
+                /* let the program continue until the next system call */
+                libc::ptrace(libc::PTRACE_SYSCALL, target_pid, 0, 0);
+            }
         }
     }
 }
