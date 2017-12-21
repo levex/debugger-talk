@@ -15,6 +15,9 @@ fn target_run(target: &String) {
     println!("TRG: running {}", target);
 
     unsafe {
+        /* tell the kernel that we want to be traced */
+        libc::ptrace(libc::PTRACE_TRACEME, 0, 0, 0);
+
         /* create a C String version of the target */
         let ctarget_m = CString::new((*target).clone()).unwrap();
         let ctarget = ctarget_m.as_ptr();
@@ -51,6 +54,22 @@ fn target_start(target: &String) {
     } else {
         /* this is the debugger instance */
         println!("DBG: debugger attaching to pid {}", target_pid);
+
+        unsafe {
+            /* wait for the first ptrace induced block */
+            libc::wait(std::ptr::null_mut());
+
+            /* the child was blocked, time to read the first syscall # */
+            let orig_eax = libc::ptrace(libc::PTRACE_PEEKUSER, target_pid, 8 * libc::ORIG_RAX, 0);
+
+            println!("DBG: Register RAX had value {} before the target was blocked", orig_eax);
+
+            /* let the program continue */
+            libc::ptrace(libc::PTRACE_CONT, target_pid, 0, 0);
+
+            /* wait for it to die... */
+            libc::wait(std::ptr::null_mut());
+        }
     }
 }
 
