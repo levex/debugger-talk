@@ -1,5 +1,9 @@
 use std::env;
-use std::ffi::{CString};
+use std::io;
+mod ptrace;
+mod target;
+use target::*;
+use std::io::Write;
 extern crate libc;
 
 fn usage(name: &String) {
@@ -11,32 +15,36 @@ fn usage(name: &String) {
     println!("Usage: {} EXEC - runs EXEC and attaches to it", name);
 }
 
-fn target_run(target: &String) {
-    println!("TRG: running {}", target);
+fn input_loop(prg: &mut TargetProgram) {
+    loop {
+        println!("Target stopped, please enter a command, or 'h' for help");
+        print!("(talkDbg) ");
+        std::io::stdout().flush();
+        let mut reader = io::stdin();
+        let mut input = String::new();
+        reader.read_line(&mut input).ok().expect("DBG: couldn't read from console");
 
-    unsafe {
-        /* tell the kernel that we want to be traced */
-        libc::ptrace(libc::PTRACE_TRACEME, 0, 0, 0);
+        if input.trim() == "h" {
+            println!("s - run & wait until next syscall");
+            println!("c - continue until next breakpoint");
+        } else if input.trim() == "c" {
+            prg.cont();
+        } else if input.trim() == "s" {
+            /* continue and wait for next syscall */
+            prg.continue_and_wait_until_next_syscall();
 
-        /* create a C String version of the target */
-        let ctarget_m = CString::new((*target).clone()).unwrap();
-        let ctarget = ctarget_m.as_ptr();
+            /* the child was blocked, time to read the first syscall # */
+            let orig_eax = prg.read_user(libc::ORIG_RAX)
+                    .ok()
+                    .expect("DBG: FATAL: ptrace failed to read the RAX register");
 
-        /* prepare the argv */
-        let mut vec_argv: Vec<*const i8> = Vec::new();
-        vec_argv.push(ctarget);
-        vec_argv.push(std::ptr::null());
+            println!("DBG: Target invoked system call {}", orig_eax);
 
-        /* prepare the environment */
-        let mut vec_envv: Vec<*const i8> = Vec::new();
-        vec_envv.push(CString::new("HOME=/vagrant").unwrap().as_ptr());
-        vec_envv.push(std::ptr::null());
-
-        /* start the application */
-        let ret = libc::execve(ctarget, vec_argv.as_ptr(), vec_envv.as_ptr());
-
-        /* oops, it failed to run */
-        println!("TRG: failed to run, exited with err {} and errno {}", ret, *libc::__errno_location());
+            if orig_eax == -1 || orig_eax == 60 || orig_eax == 231 {
+                println!("DBG: Target has exited");
+                break;
+            }
+        }
     }
 }
 
@@ -46,34 +54,24 @@ fn target_start(target: &String) {
         target_pid = libc::fork();
     }
 
+    let mut prg: TargetProgram = TargetProgram::new(target_pid, target);
+
     /* FIXME: handle when the fork fails */
     if target_pid == 0 {
-        /* this is the target process */
-        target_run(target);
+
+        println!("TRG: running {}", target);
+        prg.run();
+
         return;
     } else {
         /* this is the debugger instance */
         println!("DBG: debugger attaching to pid {}", target_pid);
 
-        unsafe {
-            loop {
-                /* wait for the ptrace induced block */
-                libc::wait(std::ptr::null_mut());
+        /* wait for the first stop... */
+        prg.wait();
 
-                /* the child was blocked, time to read the first syscall # */
-                let orig_eax = libc::ptrace(libc::PTRACE_PEEKUSER, target_pid, 8 * libc::ORIG_RAX, 0);
-
-                println!("DBG: Target invoked system call {}", orig_eax);
-
-                if orig_eax == -1 || orig_eax == 60 || orig_eax == 231 {
-                    println!("DBG: Target has exited");
-                    break;
-                }
-
-                /* let the program continue until the next system call */
-                libc::ptrace(libc::PTRACE_SYSCALL, target_pid, 0, 0);
-            }
-        }
+        /* then start the input loop */
+        input_loop(&mut prg);
     }
 }
 
