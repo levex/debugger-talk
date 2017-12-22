@@ -37,11 +37,22 @@ fn input_loop(prg: &mut TargetProgram) {
         if input.trim() == "h" {
             println!("Welcome to talkDbg, below are the commands you can use:");
             println!("");
+            println!("s - singlestep");
             println!("y - run & wait until next syscall");
             println!("r - dump registers");
             println!("c - continue until next breakpoint");
             println!("h - show this help");
             println!("q - quit");
+        } else if input.trim() == "s" {
+            prg.singlestep();
+            prg.wait();
+            let rip = prg.read_user(libc::RIP).ok().expect("DBG: FATAL: failed to read a register");
+            let rsp = prg.read_user(libc::RSP).ok().expect("DBG: FATAL: failed to read a register");
+            let rbp = prg.read_user(libc::RBP).ok().expect("DBG: FATAL: failed to read a register");
+
+            /* TODO: disassemble instruction */
+
+            println!("RIP: 0x{:016x} RSP: 0x{:016x} RBP: 0x{:016x}", rip, rsp, rbp);
         } else if input.trim() == "c" {
             prg.cont();
             prg.wait();

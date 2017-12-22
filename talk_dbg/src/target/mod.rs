@@ -82,6 +82,11 @@ impl TargetProgram {
         return ptrace::read_user(self.target_pid, reg_id);
     }
 
+    pub fn singlestep(&mut self) {
+        self.state = ProgramState::Running;
+        ptrace::singlestep(self.target_pid);
+    }
+
     pub fn cont(&mut self) {
         self.state = ProgramState::Running;
         ptrace::cont(self.target_pid);

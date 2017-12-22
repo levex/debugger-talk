@@ -20,6 +20,12 @@ pub fn continue_and_wait_until_next_syscall(target_pid: i32) {
     }
 }
 
+pub fn singlestep(target_pid: i32) {
+    unsafe {
+        libc::ptrace(libc::PTRACE_SINGLESTEP, target_pid, 0, 0);
+    }
+}
+
 pub fn cont(target_pid: i32) {
     unsafe {
         libc::ptrace(libc::PTRACE_CONT, target_pid, 0, 0);
