@@ -1,10 +1,14 @@
 use std::env;
 use std::io;
+use std::mem::transmute;
 mod ptrace;
 mod target;
 use target::*;
 use std::io::Write;
 extern crate libc;
+extern crate capstone;
+use capstone::*;
+use capstone::arch::*;
 
 fn usage(name: &String) {
     println!("talkDbg -- a simple debugger written at linux.conf.au 2018");
@@ -22,9 +26,9 @@ fn input_loop(prg: &mut TargetProgram) {
     loop {
         let reader = io::stdin();
         let mut input = String::new();
-        if (should_prompt) {
+        if should_prompt {
             print!("(talkDbg) ");
-            std::io::stdout().flush();
+            std::io::stdout().flush().ok().expect("DBG: failed to flush stdout");
             reader.read_line(&mut input).ok().expect("DBG: couldn't read from console");
         }
 
@@ -51,6 +55,29 @@ fn input_loop(prg: &mut TargetProgram) {
             let rbp = prg.read_user(libc::RBP).ok().expect("DBG: FATAL: failed to read a register");
 
             /* TODO: disassemble instruction */
+            let mut instruction: [u8; 16] = [0x90; 16];
+
+            unsafe {
+                let rawtop = libc::ptrace(libc::PTRACE_PEEKTEXT, prg.target_pid, rip, 0);
+                let top: [u8; 8] = transmute(rawtop.to_le());
+
+                let rawbot = libc::ptrace(libc::PTRACE_PEEKTEXT, prg.target_pid, rip + 8, 0);
+                let bot: [u8; 8] = transmute(rawbot.to_le());
+
+                instruction[0..8].copy_from_slice(&top);
+                instruction[8..].copy_from_slice(&bot);
+            }
+
+            let cs = Capstone::new()
+                .x86()
+                .mode(arch::x86::ArchMode::Mode64)
+                .syntax(arch::x86::ArchSyntax::Att)
+                .detail(true)
+                .build().ok().expect("Failed to construct capstone disassembler");
+            let insns = cs.disasm_count(&instruction, rip as u64, 1).ok().expect("Unknown instruction");
+            for i in insns.iter() {
+                println!("{}", i);
+            }
 
             println!("RIP: 0x{:016x} RSP: 0x{:016x} RBP: 0x{:016x}", rip, rsp, rbp);
         } else if input.trim() == "c" {

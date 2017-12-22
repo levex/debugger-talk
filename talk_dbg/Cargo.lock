@@ -1,4 +1,17 @@
 [[package]]
+name = "capstone"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "capstone-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "capstone-sys"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "libc"
 version = "0.2.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7,8 +20,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "talk_dbg"
 version = "0.1.0"
 dependencies = [
+ "capstone 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.2.34 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [metadata]
+"checksum capstone 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "baec16ad9e8a53db13c6fad761ba1348b00b5dbe381ba152cba39b767253a508"
+"checksum capstone-sys 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5d39c6f285e36142eaef829881a2e724c51f31d3b550741ec958e4ec3f87f6ee"
 "checksum libc 0.2.34 (registry+https://github.com/rust-lang/crates.io-index)" = "36fbc8a8929c632868295d0178dd8f63fc423fd7537ad0738372bd010b3ac9b0"

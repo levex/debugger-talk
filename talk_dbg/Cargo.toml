@@ -5,3 +5,4 @@ authors = ["Levente Kurusa <levex@linux.com>"]
 
 [dependencies]
 libc = "0.2.34"
+capstone = "0.2.0"
