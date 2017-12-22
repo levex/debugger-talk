@@ -35,8 +35,12 @@ fn input_loop(prg: &mut TargetProgram) {
         }
 
         if input.trim() == "h" {
+            println!("Welcome to talkDbg, below are the commands you can use:");
+            println!("");
             println!("s - run & wait until next syscall");
             println!("c - continue until next breakpoint");
+            println!("h - show this help");
+            println!("q - quit");
         } else if input.trim() == "c" {
             prg.cont();
             prg.wait();
@@ -58,7 +62,7 @@ fn input_loop(prg: &mut TargetProgram) {
                         .ok()
                         .expect("DBG: FATAL: ptrace failed to read the RAX register");
 
-                print!("DBG: Target invoked system call {} ", orig_eax);
+                print!("DBG: Target invoked system call {}", orig_eax);
 
                 if orig_eax == -1 || orig_eax == 60 || orig_eax == 231 {
                     println!("");
@@ -77,7 +81,9 @@ fn input_loop(prg: &mut TargetProgram) {
                 println!(" with result {}", result);
                 should_prompt = true;
             }
-
+        } else if input.trim() == "q" {
+            prg.kill();
+            break;
         }
     }
 

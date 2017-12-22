@@ -64,6 +64,13 @@ impl TargetProgram {
         }
     }
 
+    pub fn kill(&mut self) {
+        unsafe {
+            libc::kill(self.target_pid, libc::SIGKILL);
+        }
+        self.state = ProgramState::Exited;
+    }
+
     pub fn wait(&self) {
         unsafe {
             /* wait for the next ptrace induced block */
