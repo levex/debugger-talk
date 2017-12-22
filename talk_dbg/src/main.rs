@@ -38,6 +38,7 @@ fn input_loop(prg: &mut TargetProgram) {
             println!("Welcome to talkDbg, below are the commands you can use:");
             println!("");
             println!("s - run & wait until next syscall");
+            println!("r - dump registers");
             println!("c - continue until next breakpoint");
             println!("h - show this help");
             println!("q - quit");
@@ -47,6 +48,47 @@ fn input_loop(prg: &mut TargetProgram) {
             /* we don't support breakpoints, so this must mean it exited */
             prg.state = ProgramState::Exited;
             break;
+        } else if input.trim() == "r" {
+            let (rax, rbx, rcx, rdx);
+            let (r15, r14, r13, r12, r11, r10, r9, r8);
+            let (rsp, rbp, rsi, rdi);
+            let (rip, cs, eflags, ss, ds, es, fs, gs);
+
+            /* generated with Vim, should use PTRACE_GETREGS */
+            rax = prg.read_user(libc::RAX).ok().expect("DBG: FATAL: failed to read a register");
+            rbx = prg.read_user(libc::RBX).ok().expect("DBG: FATAL: failed to read a register");
+            rcx = prg.read_user(libc::RCX).ok().expect("DBG: FATAL: failed to read a register");
+            rdx = prg.read_user(libc::RDX).ok().expect("DBG: FATAL: failed to read a register");
+
+            r15 = prg.read_user(libc::R15).ok().expect("DBG: FATAL: failed to read a register");
+            r14 = prg.read_user(libc::R14).ok().expect("DBG: FATAL: failed to read a register");
+            r13 = prg.read_user(libc::R13).ok().expect("DBG: FATAL: failed to read a register");
+            r12 = prg.read_user(libc::R12).ok().expect("DBG: FATAL: failed to read a register");
+            r11 = prg.read_user(libc::R11).ok().expect("DBG: FATAL: failed to read a register");
+            r10 = prg.read_user(libc::R10).ok().expect("DBG: FATAL: failed to read a register");
+            r9 = prg.read_user(libc::R9).ok().expect("DBG: FATAL: failed to read a register");
+            r8 = prg.read_user(libc::R8).ok().expect("DBG: FATAL: failed to read a register");
+
+            rsp = prg.read_user(libc::RSP).ok().expect("DBG: FATAL: failed to read a register");
+            rbp = prg.read_user(libc::RBP).ok().expect("DBG: FATAL: failed to read a register");
+            rsi = prg.read_user(libc::RSI).ok().expect("DBG: FATAL: failed to read a register");
+            rdi = prg.read_user(libc::RDI).ok().expect("DBG: FATAL: failed to read a register");
+
+            rip = prg.read_user(libc::RIP).ok().expect("DBG: FATAL: failed to read a register");
+            cs = prg.read_user(libc::CS).ok().expect("DBG: FATAL: failed to read a register");
+            eflags = prg.read_user(libc::EFLAGS).ok().expect("DBG: FATAL: failed to read a register");
+            ss = prg.read_user(libc::SS).ok().expect("DBG: FATAL: failed to read a register");
+            ds = prg.read_user(libc::DS).ok().expect("DBG: FATAL: failed to read a register");
+            es = prg.read_user(libc::ES).ok().expect("DBG: FATAL: failed to read a register");
+            fs = prg.read_user(libc::FS).ok().expect("DBG: FATAL: failed to read a register");
+            gs = prg.read_user(libc::GS).ok().expect("DBG: FATAL: failed to read a register");
+
+            println!("RAX: 0x{:016x} RBX: 0x{:016x} RCX: 0x{:016x} RDX: 0x{:016x}", rax, rbx, rcx, rdx);
+            println!("R15: 0x{:016x} R14: 0x{:016x} R13: 0x{:016x} R12: 0x{:016x}", r15, r14, r13, r12);
+            println!("R11: 0x{:016x} R10: 0x{:016x} R9:  0x{:016x} R8:  0x{:016x}", r11, r10, r9, r8);
+            println!("RSP: 0x{:016x} RBP: 0x{:016x} RSI: 0x{:016x} RDI: 0x{:016x}", rsp, rbp, rsi, rdi);
+            println!("RIP: 0x{:016x} CS: 0x{:04x} EFLAGS: 0x{:08x}", rip, cs, eflags);
+            println!("SS: 0x{:04x} DS: 0x{:04x} ES: 0x{:04x} FS: 0x{:04x} GS: 0x{:04x}", ss, ds, es, fs, gs);
         } else if input.trim() == "s" {
             /* continue and wait for next syscall */
             prg.continue_and_wait_until_next_syscall();

@@ -28,8 +28,10 @@ pub fn cont(target_pid: i32) {
 
 pub fn read_user(target_pid: i32, reg_id: i32) -> Result<i64, i32> {
     unsafe {
+        /* clear errno */
+        *libc::__errno_location() = 0;
         let ret = libc::ptrace(libc::PTRACE_PEEKUSER, target_pid, 8 * reg_id, 0);
-        if ret == -1 {
+        if ret == -1 && *libc::__errno_location() != 0 {
             return Err(*libc::__errno_location());
         } else {
             return Ok(ret);
