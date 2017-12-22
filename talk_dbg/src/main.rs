@@ -37,7 +37,7 @@ fn input_loop(prg: &mut TargetProgram) {
         if input.trim() == "h" {
             println!("Welcome to talkDbg, below are the commands you can use:");
             println!("");
-            println!("s - run & wait until next syscall");
+            println!("y - run & wait until next syscall");
             println!("r - dump registers");
             println!("c - continue until next breakpoint");
             println!("h - show this help");
@@ -89,7 +89,7 @@ fn input_loop(prg: &mut TargetProgram) {
             println!("RSP: 0x{:016x} RBP: 0x{:016x} RSI: 0x{:016x} RDI: 0x{:016x}", rsp, rbp, rsi, rdi);
             println!("RIP: 0x{:016x} CS: 0x{:04x} EFLAGS: 0x{:08x}", rip, cs, eflags);
             println!("SS: 0x{:04x} DS: 0x{:04x} ES: 0x{:04x} FS: 0x{:04x} GS: 0x{:04x}", ss, ds, es, fs, gs);
-        } else if input.trim() == "s" {
+        } else if input.trim() == "y" {
             /* continue and wait for next syscall */
             prg.continue_and_wait_until_next_syscall();
 
