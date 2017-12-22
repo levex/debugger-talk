@@ -10,12 +10,16 @@ pub enum ProgramState {
     Running,
     Stopped,
     Failed,
+    Exited,
 }
+
+pub const PRG_FLAG_IN_SYSCALL: u32 = (1 << 0);
 
 pub struct TargetProgram {
     pub target_pid: i32,
     pub target_executable: String,
     pub state: ProgramState,
+    pub flags: u32,
 }
 
 impl TargetProgram {
@@ -25,6 +29,7 @@ impl TargetProgram {
             target_pid: target_pid,
             target_executable: (*target).clone(),
             state: ProgramState::Fresh,
+            flags: 0,
         }
     }
 
@@ -67,9 +72,6 @@ impl TargetProgram {
     }
 
     pub fn read_user(&mut self, reg_id: i32) -> Result<i64, i32> {
-        /*if self.state != ProgramState::Stopped {
-            return Err(-1);
-        }*/
         return ptrace::read_user(self.target_pid, reg_id);
     }
 
@@ -79,17 +81,11 @@ impl TargetProgram {
     }
 
     pub fn continue_until_next_syscall(&mut self) {
-        if self.state != ProgramState::Stopped {
-            return;
-        }
         ptrace::continue_until_next_syscall(self.target_pid);
         self.state = ProgramState::Running;
     }
 
     pub fn continue_and_wait_until_next_syscall(&mut self) {
-        /*if self.state != ProgramState::Stopped {
-            return;*
-        }*/
         ptrace::continue_and_wait_until_next_syscall(self.target_pid);
         self.state = ProgramState::Stopped;
     }
