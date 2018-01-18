@@ -19,6 +19,33 @@ fn usage(name: &String) {
     println!("Usage: {} EXEC - runs EXEC and attaches to it", name);
 }
 
+fn disassemble_at(target_pid: i32, rip: i64) -> String {
+        let mut instruction: [u8; 16] = [0x90; 16];
+
+        unsafe {
+            let rawtop = libc::ptrace(libc::PTRACE_PEEKTEXT, target_pid, rip, 0);
+            let top: [u8; 8] = transmute(rawtop.to_le());
+
+            let rawbot = libc::ptrace(libc::PTRACE_PEEKTEXT, target_pid, rip + 8, 0);
+            let bot: [u8; 8] = transmute(rawbot.to_le());
+
+            instruction[0..8].copy_from_slice(&top);
+            instruction[8..].copy_from_slice(&bot);
+        }
+
+        let cs = Capstone::new()
+            .x86()
+            .mode(arch::x86::ArchMode::Mode64)
+            .syntax(arch::x86::ArchSyntax::Att)
+            .detail(true)
+            .build()
+            .ok()
+            .expect("Failed to construct capstone disassembler");
+
+        let insns = cs.disasm_count(&instruction, rip as u64, 1).ok().expect("Unknown instruction");
+        return format!("{}", insns.iter().nth(0).expect("no instruction"));
+}
+
 fn input_loop(prg: &mut TargetProgram) {
     let mut last_input: String = String::new();
     let mut should_prompt: bool = true;
@@ -54,31 +81,7 @@ fn input_loop(prg: &mut TargetProgram) {
             let rsp = prg.read_user(libc::RSP).ok().expect("DBG: FATAL: failed to read a register");
             let rbp = prg.read_user(libc::RBP).ok().expect("DBG: FATAL: failed to read a register");
 
-            /* TODO: disassemble instruction */
-            let mut instruction: [u8; 16] = [0x90; 16];
-
-            unsafe {
-                let rawtop = libc::ptrace(libc::PTRACE_PEEKTEXT, prg.target_pid, rip, 0);
-                let top: [u8; 8] = transmute(rawtop.to_le());
-
-                let rawbot = libc::ptrace(libc::PTRACE_PEEKTEXT, prg.target_pid, rip + 8, 0);
-                let bot: [u8; 8] = transmute(rawbot.to_le());
-
-                instruction[0..8].copy_from_slice(&top);
-                instruction[8..].copy_from_slice(&bot);
-            }
-
-            let cs = Capstone::new()
-                .x86()
-                .mode(arch::x86::ArchMode::Mode64)
-                .syntax(arch::x86::ArchSyntax::Att)
-                .detail(true)
-                .build().ok().expect("Failed to construct capstone disassembler");
-            let insns = cs.disasm_count(&instruction, rip as u64, 1).ok().expect("Unknown instruction");
-            for i in insns.iter() {
-                println!("{}", i);
-            }
-
+            println!("{}", disassemble_at(prg.target_pid, rip));
             println!("RIP: 0x{:016x} RSP: 0x{:016x} RBP: 0x{:016x}", rip, rsp, rbp);
         } else if input.trim() == "c" {
             prg.cont();
