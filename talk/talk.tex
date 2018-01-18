@@ -16,9 +16,13 @@
 %%%% some of my lkurusa-tools %%%%
 
 \newcommand*{\emailify}[1]{$<$#1$>$}
-\newcommand*{\myemail}{\emailify{lkurusa@linux.com}}
+\newcommand*{\myemail}{\emailify{levex@linux.com}}
 \newcommand*{\ptrace}{\texttt{ptrace}}
 \newcommand*{\ptraceman}{\texttt{ptrace(2)}}
+\newcommand*{\sig}[1]{\texttt{SIG#1}}
+\newcommand*{\sigsegv}[0]{\sig{SEGV}}
+\newcommand*{\sigtrap}[0]{\sig{TRAP}}
+\newcommand*{\sigill}[0]{\sig{ILL}}
 
 %%%%%%%%
 
@@ -137,15 +141,49 @@ long ptrace(enum __ptrace_request request, pid_t pid,
 \end{frame}
 
 \begin{frame}{Signals}
-Signals originate from CPU exceptions..
+\begin{center}
+    \only<1->How does \mintinline{c}{int a = 3, b = 0, c = a / b} result in a \sig{FPE}?
+\end{center}
+\only<2->{\begin{enumerate}
+    \item<2-> Division by zero is noticed by the CPU
+    \item<3-> The CPU raises a Divide-by-zero exception \texttt{(\#DE)}
+    \item<4-> A handler in the kernel is eventually called
+    \item<5-> The kernel sends a \sig{FPE} to the offending process
+    \item<6-> Your signal handler is called (or not if it is \sig{KILL})
+\end{enumerate}
+}
 \end{frame}
 
 \begin{frame}{Implementation}
 \begin{itemize}[<+- | alert@+>]
-    \item<1-> \alert<2>{Enable tracing}
-    \item<1-> \alert<3>{Run until system call}
-    \item<1-> \alert<4>{Monitoring registers}
-    \item<1-> \alert<5>{Single stepping}
+    \only<1->{
+        \item<1-> \alert<2,3>{Enable tracing}
+            \only<3->{
+                \begin{itemize}
+                    \item \texttt{PTRACE\_TRACEME}
+               \end{itemize}
+            }
+        \item<1-> \alert<4,5>{Run until system call}
+            \only<5->{
+                \begin{itemize}
+                    \item \texttt{PTRACE\_SYSCALL}
+                    \item \texttt{PTRACE\_SYSEMU}
+                \end{itemize}
+            }
+        \item<1-> \alert<6,7>{Monitoring registers}
+            \only<7->{
+                \begin{itemize}
+                    \item \texttt{PTRACE\_PEEKUSER / PTRACE\_POKEUSER}
+                    \item \texttt{PTRACE\_GETREGS / PTRACE\_SETREGS}
+                \end{itemize}
+            }
+        \item<1-> \alert<8,9>{Single stepping}
+            \only<9->{
+                \begin{itemize}
+                    \item \texttt{PTRACE\_SINGLESTEP}
+                \end{itemize}
+            }
+    }
 \end{itemize}
 \end{frame}
 
@@ -153,15 +191,41 @@ Signals originate from CPU exceptions..
 
 \begin{frame}{Interrupting a process}
 
-\texttt{PTRACE\_SYSCALL} \\
-\texttt{PTRACE\_SINGLESTEP}
+\only<1->{
+\begin{center}
+    {\Large \texttt{PTRACE\_SINGLESTEP}}
+\end{center}
+}
 
-Undefined instructions, debug interrupt...
+\only<2->{
+    \begin{itemize}
+        \item<2-> \mintinline{asm}{ud2} \hfill (machine code: \mintinline{c}{0x0F 0x0B})
+                \begin{itemize}
+                    \item Triggers \texttt{\#UD}
+                \end{itemize}
+        \item<3-> \mintinline{asm}{int $3} %$% <-- to fix tex studio highlighting lol
+                \hfill (machine code: \mintinline{c}{0xCC})
+                \begin{itemize}
+                    \item Triggers \texttt{\#BP}
+                \end{itemize}
+    \end{itemize}
+}
 
 \end{frame}
 
 \begin{frame}{Debug registers}
-\texttt{DR0-DR7}
+\begin{itemize}
+    \item<1-> \texttt{DR0-DR3}: Linear addresses
+    \item<2-> \texttt{DR4} \& \texttt{DR5}: Obsolete aliases to \texttt{DR6} \& \texttt{DR7}
+    \item<3-> \texttt{DR6}: Debug control\\
+        Contains bitmasks for:
+        \begin{itemize}
+            \item 1, 2, 4 or 8 bytes monitored
+            \item Break on read, write, execute, or read+write
+        \end{itemize}
+    \item<4-> \texttt{DR7}: Debug status \\
+        Bitmask showing which of \texttt{DR0-DR3} triggered the \texttt{\#DB}
+\end{itemize}
 \end{frame}
 
 \begin{frame}{Thanks!}
@@ -177,9 +241,8 @@ GitHub: levex \hfill Website: \url{http://osdev.me/}
 \begin{small}
 The \LaTeX\hskip1mm theme is available at \url{github.com/matze/mtheme}
 
-The theme is licensed under a
-\href{http://creativecommons.org/licenses/by-sa/4.0/}{CC-BY-SA 4.0 International license},
-and the talk is licensed under the \href{https://opensource.org/licenses/MIT}{MIT license}.
+Both the theme and the talk are licensed under the
+\href{http://creativecommons.org/licenses/by-sa/4.0/}{CC-BY-SA 4.0 International license}.
 
 \end{small}
 
