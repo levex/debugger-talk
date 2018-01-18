@@ -11,3 +11,17 @@ Cargo.lock
 /target/
 **/*.rs.bk
 Cargo.lock
+
+## LaTeX
+talk/talk.aux
+talk/talk.vrb
+talk/talk.log
+talk/talk.nav
+talk/talk.out
+talk/talk.snm
+talk/talk.synctex.gz
+talk/talk.toc
+_minted-talk/
+
+## Vagrant
+.vagrant/
