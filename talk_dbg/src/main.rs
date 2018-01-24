@@ -42,10 +42,18 @@ fn disassemble_at(target_pid: i32, rip: u64) -> String {
             .ok()
             .expect("Failed to construct capstone disassembler");
 
-        println!("disassembling: {:?}", instruction);
+        //println!("disassembling: {:?}", instruction);
 
         let insns = cs.disasm_count(&instruction, rip, 1).ok().expect("Unknown instruction");
         return format!("{}", insns.iter().nth(0).expect("no instruction"));
+}
+
+fn print_short_state(prg: &mut TargetProgram) {
+    let regs = prg.get_user_struct().regs;
+
+    println!("{}", disassemble_at(prg.target_pid, regs.rip));
+    println!("RIP: 0x{:016x} RSP: 0x{:016x} RBP: 0x{:016x}",
+                regs.rip, regs.rsp, regs.rbp);
 }
 
 fn input_loop(prg: &mut TargetProgram) {
@@ -80,11 +88,8 @@ fn input_loop(prg: &mut TargetProgram) {
         } else if input.trim() == "s" {
             prg.singlestep();
             prg.wait();
-            let regs = prg.get_user_struct().regs;
 
-            println!("{}", disassemble_at(prg.target_pid, regs.rip));
-            println!("RIP: 0x{:016x} RSP: 0x{:016x} RBP: 0x{:016x}",
-                        regs.rip, regs.rsp, regs.rbp);
+            print_short_state(prg);
         } else if input.trim() == "c" {
             prg.cont();
             let status: libc::c_int = prg.wait() as libc::c_int;
@@ -96,6 +101,7 @@ fn input_loop(prg: &mut TargetProgram) {
                     break;
                 } else if libc::WIFSTOPPED(status) {
                     prg.handle_breakpoint();
+                    print_short_state(prg);
                 } else {
                     println!("Something odd happened");
                 }
@@ -154,7 +160,7 @@ fn input_loop(prg: &mut TargetProgram) {
             let addr: u64 = u64::from_str_radix(&address, 16).unwrap();
 
             prg.set_breakpoint(addr);
-            println!("breakpoint should be set at {:016x}", addr);
+            println!("breakpoint should set at {:016x}", addr);
         } else if input.trim() == "q" {
             prg.kill();
             break;
