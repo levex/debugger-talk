@@ -160,7 +160,7 @@ fn input_loop(prg: &mut TargetProgram) {
             let addr: u64 = u64::from_str_radix(&address, 16).unwrap();
 
             prg.set_breakpoint(addr);
-            println!("breakpoint should set at {:016x}", addr);
+            println!("Breakpoint set at {:016x}!", addr);
         } else if input.trim() == "q" {
             prg.kill();
             break;
