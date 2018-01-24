@@ -29,115 +29,6 @@ pub struct TargetProgram {
     breakpoints: Vec<BreakpointData>,
 }
 
-pub struct UserStructWrap {
-    pub unwrap: libc::user,
-}
-
-/*
-impl Default for UserStructWrap {
-    fn default() -> UserStructWrap {
-        UserStructWrap {
-            unwrap: libc::user {
-                __reserved: 0,
-                i387: libc::user_fpregs_struct {
-                    cwd: 0,
-                    swd: 0,
-                    ftw: 0,
-                    fop: 0,
-                    rip: 0,
-                    rdp: 0,
-                    mxcsr: 0,
-                    mxcr_mask: 0,
-                    st_space: [0; 32],
-                    xmm_space: [0; 64],
-                    padding: [0; 24],
-                },
-                magic: 0,
-                regs: libc::user_regs_struct {
-                    r15: 0,
-                    r14: 0,
-                    r13: 0,
-                    r12: 0,
-                    r11: 0,
-                    r10: 0,
-                    r9: 0,
-                    r8: 0,
-                    rbp: 0,
-                    rbx: 0,
-                    rsi: 0,
-                    rdi: 0,
-                    orig_rax: 0,
-                    rip: 0,
-                    cs: 0,
-                    ds: 0,
-                    es: 0,
-                    fs: 0,
-                    gs: 0,
-                    eflags: 0,
-                    rsp: 0,
-                    ss: 0,
-                    fs_base: 0,
-                    gs_base: 0,
-                    rax: 0,
-                    rcx: 0,
-                    rdx: 0,
-                },
-                signal: 0,
-                start_code: 0,
-                start_stack: 0,
-                u_ar0: &mut libc::user_regs_struct {
-                    r15: 0,
-                    r14: 0,
-                    r13: 0,
-                    r12: 0,
-                    r11: 0,
-                    r10: 0,
-                    r9: 0,
-                    r8: 0,
-                    rbp: 0,
-                    rbx: 0,
-                    rsi: 0,
-                    rdi: 0,
-                    orig_rax: 0,
-                    rip: 0,
-                    cs: 0,
-                    ds: 0,
-                    es: 0,
-                    fs: 0,
-                    gs: 0,
-                    eflags: 0,
-                    rsp: 0,
-                    ss: 0,
-                    fs_base: 0,
-                    gs_base: 0,
-                    rax: 0,
-                    rcx: 0,
-                    rdx: 0,
-                },
-                u_comm: [0; 32],
-                u_debugreg: [0; 8],
-                u_dsize: 0,
-                u_tsize: 0,
-                u_ssize: 0,
-                u_fpstate: &mut libc::user_fpregs_struct {
-                    cwd: 0,
-                    swd: 0,
-                    ftw: 0,
-                    fop: 0,
-                    rip: 0,
-                    rdp: 0,
-                    mxcsr: 0,
-                    mxcr_mask: 0,
-                    st_space: [0; 32],
-                    xmm_space: [0; 64],
-                    padding: [0; 24],
-                },
-                u_fpvalid: 0,
-            },
-        }
-    }
-}*/
-
 impl TargetProgram {
 
     pub fn new(target_pid: i32, target: &String) -> TargetProgram {
@@ -213,40 +104,31 @@ impl TargetProgram {
         ptrace::cont(self.target_pid);
     }
 
-    pub fn continue_until_next_syscall(&mut self) {
-        ptrace::continue_until_next_syscall(self.target_pid);
-        self.state = ProgramState::Running;
-    }
-
     pub fn continue_and_wait_until_next_syscall(&mut self) {
         ptrace::continue_and_wait_until_next_syscall(self.target_pid);
         self.state = ProgramState::Stopped;
     }
 
     pub fn peek_byte_at(&mut self, location: u64) -> u8 {
-        unsafe {
-            /* align to 8 bytes */
-            let loc = (location / 8) * 8;
-            let offset = location % 8;
-            let word: Result<u64, i32> = ptrace::peek_word(self.target_pid, loc);
-            match word {
-                Ok(w) => return ((w & (0xff << (8 * offset))) >> (8 * offset)) as u8,
-                Err(err) =>
-                    panic!("failed to read byte at {:016x} errno: {}", loc, err),
-            }
+        /* align to 8 bytes */
+        let loc = (location / 8) * 8;
+        let offset = location % 8;
+        let word: Result<u64, i32> = ptrace::peek_word(self.target_pid, loc);
+        match word {
+            Ok(w) => return ((w & (0xff << (8 * offset))) >> (8 * offset)) as u8,
+            Err(err) =>
+                panic!("failed to read byte at {:016x} errno: {}", loc, err),
         }
     }
 
     pub fn poke_byte_at(&mut self, location: u64, data: u8) {
-        unsafe {
-            let loc = (location / 8) * 8;
-            let offset = location % 8;
-            let mut word: u64 = ptrace::peek_word(self.target_pid, loc)
-                .ok()
-                .expect("OOPS");
-            word = (word & !(0xff << (8 * offset))) | ((data as u64) << (8 * offset));
-            ptrace::poke_word(self.target_pid, loc, word);
-        }
+        let loc = (location / 8) * 8;
+        let offset = location % 8;
+        let mut word: u64 = ptrace::peek_word(self.target_pid, loc)
+            .ok()
+            .expect("OOPS");
+        word = (word & !(0xff << (8 * offset))) | ((data as u64) << (8 * offset));
+        ptrace::poke_word(self.target_pid, loc, word);
     }
 
     pub fn get_user_struct(&mut self) -> libc::user {
@@ -258,9 +140,7 @@ impl TargetProgram {
     }
 
     pub fn write_user_struct(&mut self, usr: libc::user) {
-        unsafe {
-            ptrace::write_user_struct(self.target_pid, &usr);
-        }
+        ptrace::write_user_struct(self.target_pid, &usr);
     }
 
     pub fn set_breakpoint(&mut self, loc: u64) {
@@ -291,6 +171,7 @@ impl TargetProgram {
             if bp.addr == rip {
                 //println!("handled breakpoint at {:016x}, orig_byte: {:02x}",
                          //bp.addr, bp.orig_byte);
+                println!("Breakpoint hit at 0x{:016x}!", bp.addr);
                 /* reset the byte */
                 self.poke_byte_at(bp.addr, bp.orig_byte);
 
