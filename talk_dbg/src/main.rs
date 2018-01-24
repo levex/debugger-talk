@@ -108,20 +108,7 @@ fn input_loop(prg: &mut TargetProgram) {
                 }
             }
         } else if input.trim() == "r" {
-            let regs = prg.get_user_struct().regs;
-
-            println!("RAX: 0x{:016x} RBX: 0x{:016x} RCX: 0x{:016x} RDX: 0x{:016x}",
-                        regs.rax, regs.rbx, regs.rcx, regs.rdx);
-            println!("R15: 0x{:016x} R14: 0x{:016x} R13: 0x{:016x} R12: 0x{:016x}",
-                        regs.r15, regs.r14, regs.r13, regs.r12);
-            println!("R11: 0x{:016x} R10: 0x{:016x} R9:  0x{:016x} R8:  0x{:016x}",
-                        regs.r11, regs.r10, regs.r9, regs.r8);
-            println!("RSP: 0x{:016x} RBP: 0x{:016x} RSI: 0x{:016x} RDI: 0x{:016x}",
-                        regs.rsp, regs.rbp, regs.rsi, regs.rdi);
-            println!("RIP: 0x{:016x} CS: 0x{:04x} EFLAGS: 0x{:08x}",
-                        regs.rip, regs.cs, regs.eflags);
-            println!("SS: 0x{:04x} DS: 0x{:04x} ES: 0x{:04x} FS: 0x{:04x} GS: 0x{:04x}",
-                        regs.ss, regs.ds, regs.es, regs.fs, regs.gs);
+            /* FIXME: implement me */
         } else if input.trim() == "y" {
             /* continue and wait for next syscall */
             prg.continue_and_wait_until_next_syscall();
@@ -183,7 +170,7 @@ fn target_start(target: &String) {
 
     let mut prg: TargetProgram = TargetProgram::new(target_pid, target);
 
-    /* FIXME: handle when the fork fails */
+    /* LATER'IXME: handle when the fork fails */
     if target_pid == 0 {
 
         println!("TRG: running {}", target);

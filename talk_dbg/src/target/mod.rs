@@ -43,8 +43,7 @@ impl TargetProgram {
 
     pub fn run(&mut self) {
         unsafe {
-            /* tell the kernel that we want to be traced */
-            ptrace::trace_me();
+            /* FIXME: Implement me */
 
             /* create a C String version of the target */
             let ctarget_m = CString::new((self.target_executable).clone()).unwrap();
@@ -95,12 +94,11 @@ impl TargetProgram {
     }
 
     pub fn singlestep(&mut self) {
-        self.state = ProgramState::Running;
-        ptrace::singlestep(self.target_pid);
+        /* FIXME: Implement me */
+        panic!("Single stepping not implemented yet");
     }
 
     pub fn cont(&mut self) {
-        self.state = ProgramState::Running;
         ptrace::cont(self.target_pid);
     }
 
@@ -156,33 +154,10 @@ impl TargetProgram {
     }
 
     pub fn set_breakpoint(&mut self, loc: u64) {
-        let orig_byte: u8 = self.peek_byte_at(loc);
-
-        /* 0xCC is the machine code int $3 */
-        self.poke_byte_at(loc, 0xCC);
-
-        self.breakpoints.push(BreakpointData {
-                addr: loc,
-                orig_byte: orig_byte,
-        });
+        // FIXME: Implement me
     }
 
     pub fn handle_breakpoint(&mut self) {
-        let mut user: libc::user = self.get_user_struct();
-        let rip: u64 = user.regs.rip - 1;
-
-        for i in 0..self.breakpoints.len() {
-            let bp = self.breakpoints[i].clone();
-
-            if bp.addr == rip {
-                self.poke_byte_at(bp.addr, bp.orig_byte);
-
-                user.regs.rip = rip;
-                self.write_user_struct(user);
-                return;
-            }
-        }
-
-        panic!("oops");
+        // FIXME: Implement me
     }
 }
