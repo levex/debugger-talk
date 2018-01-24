@@ -32,7 +32,7 @@ pub struct TargetProgram {
 impl TargetProgram {
 
     pub fn new(target_pid: i32, target: &String) -> TargetProgram {
-        return TargetProgram {
+        TargetProgram {
             target_pid: target_pid,
             target_executable: (*target).clone(),
             state: ProgramState::Fresh,
@@ -143,6 +143,18 @@ impl TargetProgram {
         ptrace::write_user_struct(self.target_pid, &usr);
     }
 
+    pub fn list_breakpoints(&mut self) {
+        if self.breakpoints.len() == 0 {
+            println!("No breakpoints set yet");
+            return;
+        }
+        for i in 0..self.breakpoints.len() {
+            let bp: BreakpointData = self.breakpoints[i].clone();
+
+            println!("Breakpoint {} at 0x{:016x}", i, bp.addr);
+        }
+    }
+
     pub fn set_breakpoint(&mut self, loc: u64) {
         /* first, read the byte at the location */
         let orig_byte: u8 = self.peek_byte_at(loc);
@@ -171,7 +183,7 @@ impl TargetProgram {
             if bp.addr == rip {
                 //println!("handled breakpoint at {:016x}, orig_byte: {:02x}",
                          //bp.addr, bp.orig_byte);
-                println!("Breakpoint hit at 0x{:016x}!", bp.addr);
+                println!("Breakpoint {} hit at 0x{:016x}!", i, bp.addr);
                 /* reset the byte */
                 self.poke_byte_at(bp.addr, bp.orig_byte);
 

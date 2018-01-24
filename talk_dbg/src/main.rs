@@ -83,6 +83,7 @@ fn input_loop(prg: &mut TargetProgram) {
             println!("r - dump registers");
             println!("c - continue until next breakpoint");
             println!("b $addr - set a breakpoint at $addr");
+            println!("lsb - list breakpoints");
             println!("h - show this help");
             println!("q - quit");
         } else if input.trim() == "s" {
@@ -103,7 +104,7 @@ fn input_loop(prg: &mut TargetProgram) {
                     prg.handle_breakpoint();
                     print_short_state(prg);
                 } else {
-                    println!("Something odd happened");
+                    panic!("Something odd happened");
                 }
             }
         } else if input.trim() == "r" {
@@ -160,7 +161,9 @@ fn input_loop(prg: &mut TargetProgram) {
             let addr: u64 = u64::from_str_radix(&address, 16).unwrap();
 
             prg.set_breakpoint(addr);
-            println!("Breakpoint set at {:016x}!", addr);
+            println!("Breakpoint set at 0x{:016x}!", addr);
+        } else if input.trim() == "lsb" {
+            prg.list_breakpoints();
         } else if input.trim() == "q" {
             prg.kill();
             break;
