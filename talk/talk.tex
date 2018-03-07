@@ -39,6 +39,7 @@
   \item Final year undergraduate at Imperial College London
   \item Previously at Apple and Red Hat
   \item Mostly working on operating systems and low-level performance
+  \item Writes in C, Haskell, Rust, Go.
 \end{itemize}
 \end{frame}
 
@@ -84,7 +85,7 @@ Debugged by putting macro call in the punch card and generating:
     \item Core dumps \textit{(contents of memory)}
 \end{itemize}
 
-\note{
+\note<2>{
     A different class of machines was also on the rise. \\
     Submit a stack of punch cards and wait for the result at the end of the day
 }
@@ -113,7 +114,7 @@ Debugging suddenly became interactive.
 
 \begin{frame}{Unix-es}
 \begin{itemize}
-    \item The first version of Unix had a debugger called, \texttt{DB}
+    \item The first version of UNIX had a debugger called, \texttt{DB}
     \item GNU had \texttt{GDB} and \texttt{LLDB}
     \item For Plan 9, \texttt{ADB} was created
 \end{itemize}
@@ -144,11 +145,11 @@ long ptrace(enum __ptrace_request request, pid_t pid,
     \only<1->How does \mintinline{c}{int a = 3, b = 0, c = a / b} result in a \sig{FPE}?
 \end{center}
 \only<2->{\begin{enumerate}
-    \item<2-> Division by zero is noticed by the CPU
-    \item<3-> The CPU raises a Divide-by-zero exception \texttt{(\#DE)}
-    \item<4-> A handler in the kernel is eventually called
-    \item<5-> The kernel sends a \sig{FPE} to the offending process
-    \item<6-> Your signal handler is called (or not if it is \sig{KILL})
+    \item<2-> Division by zero is noticed by the CPU% \hfill (condition)
+    \item<3-> The CPU raises a divide-by-zero error \texttt{(\#DE)}% \hfill (exception)
+    \item<4-> A handler in the kernel is eventually called%\hfill (ISR)
+    \item<5-> The kernel sends a \sig{FPE} to the offending process%\hfill (signal queueing)
+    \item<6-> Your signal handler is called (or not if it is \sig{KILL})% \hfill (signal delivery)
 \end{enumerate}
 }
 \end{frame}
@@ -182,6 +183,13 @@ long ptrace(enum __ptrace_request request, pid_t pid,
                     \item \texttt{PTRACE\_SINGLESTEP}
                 \end{itemize}
             }
+        \item<1-> \alert<10,11>{Memory manipulation}
+            \only<11->{
+                \begin{itemize}
+                    \item \texttt{PTRACE\_PEEKTEXT / PTRACE\_POKETEXT}
+                    \item \texttt{PTRACE\_PEEKDATA / PTRACE\_POKEDATA}
+               \end{itemize}
+            }
     }
 \end{itemize}
 \end{frame}
@@ -191,8 +199,31 @@ long ptrace(enum __ptrace_request request, pid_t pid,
 \begin{frame}{Interrupting a process}
 
 \only<1->{
+    \begin{center}
+        {\Large \texttt{PTRACE\_SINGLESTEP}}
+    \end{center}
+}
+
+\only<2->{
+    \begin{itemize}
+        \item<2->[] \only<2,3>{\texttt{\%EFLAGS}}
+                \only<3>{\texttt{\hskip-.4em.TF}}
+                \only<4->{Trap flag \hfill \textit{(Sometimes referred to as "Trace flag")}}
+        \begin{itemize}
+            \item<5-> After each instruction, trap into \texttt{\#DB} interrupt
+            \item<5-> The kernel delivers a \sigtrap
+            \item<5-> This fact is delivered via a wait-event to the debugger
+        \end{itemize}
+    \end{itemize}
+}
+
+\end{frame}
+
+\begin{frame}{Interrupting a process}
+
+\only<1->{
 \begin{center}
-    {\Large \texttt{PTRACE\_SINGLESTEP}}
+    {\Large Breakpoints}
 \end{center}
 }
 
@@ -200,30 +231,43 @@ long ptrace(enum __ptrace_request request, pid_t pid,
     \begin{itemize}
         \item<2-> \mintinline{asm}{ud2} \hfill (machine code: \mintinline{c}{0x0F 0x0B})
                 \begin{itemize}
-                    \item Triggers \texttt{\#UD}
+                    \item Triggers \texttt{\#UD} \--- Undefined instruction exception
                 \end{itemize}
         \item<3-> \mintinline{asm}{int $3} %$% <-- to fix tex studio highlighting lol
                 \hfill (machine code: \mintinline{c}{0xCC})
                 \begin{itemize}
-                    \item Triggers \texttt{\#BP}
+                    \item Triggers \texttt{\#BP} \--- Breakpoint exception
                 \end{itemize}
     \end{itemize}
 }
 
 \end{frame}
 
+\begin{frame}[<+- | textit@+>]{Breakpoint implementation}
+\begin{itemize}
+    \item<1-> Replace with "\mintinline{asm}{int $3}" %$%hack to fix tex studio highlight
+    \item<2-> Take note of the previous instruction
+    \item<3-> When the breakpoint is hit, replace with the previous instruction
+    \item<4-> Try executing the instruction again
+\end{itemize}
+\begin{itemize}
+    \item<4->[] \textit{Nota bene:}
+    \item<4-> Could have used "\mintinline{asm}{ud2}"
+\end{itemize}
+\end{frame}
+
 \begin{frame}{Debug registers}
 \begin{itemize}
-    \item<1-> \texttt{DR0-DR3}: Linear addresses
-    \item<2-> \texttt{DR4} \& \texttt{DR5}: Obsolete aliases to \texttt{DR6} \& \texttt{DR7}
-    \item<3-> \texttt{DR6}: Debug control\\
+    \item<1-> \texttt{DR0\hspace{1mm}-\hspace{1mm}DR3}: Linear addresses
+    \item<2-> \texttt{DR6}: Debug control\\
         Contains bitmasks for:
         \begin{itemize}
             \item 1, 2, 4 or 8 bytes monitored
             \item Break on read, write, execute, or read+write
         \end{itemize}
-    \item<4-> \texttt{DR7}: Debug status \\
+    \item<3-> \texttt{DR7}: Debug status \\
         Bitmask showing which of \texttt{DR0-DR3} triggered the \texttt{\#DB}
+    \item<4-> \small \texttt{DR4} \& \texttt{DR5}: Obsolete aliases to \texttt{DR6} \& \texttt{DR7}
 \end{itemize}
 \end{frame}
 

@@ -156,44 +156,33 @@ impl TargetProgram {
     }
 
     pub fn set_breakpoint(&mut self, loc: u64) {
-        /* first, read the byte at the location */
         let orig_byte: u8 = self.peek_byte_at(loc);
-        //println!("The original byte was 0x{:02x}", orig_byte);
 
-        /* write 0xcc (int $3) to the location */
+        /* 0xCC is the machine code int $3 */
         self.poke_byte_at(loc, 0xCC);
 
-        //println!("readback was: 0x{:02x}", self.peek_byte_at(loc));
-
         self.breakpoints.push(BreakpointData {
-                                addr: loc,
-                                orig_byte: orig_byte
-                            });
+                addr: loc,
+                orig_byte: orig_byte,
+        });
     }
 
     pub fn handle_breakpoint(&mut self) {
         let mut user: libc::user = self.get_user_struct();
         let rip: u64 = user.regs.rip - 1;
 
-        //println!("breakpoint at {:016x}", rip);
-
         for i in 0..self.breakpoints.len() {
-            let bp: BreakpointData = self.breakpoints[i].clone();
+            let bp = self.breakpoints[i].clone();
 
             if bp.addr == rip {
-                //println!("handled breakpoint at {:016x}, orig_byte: {:02x}",
-                         //bp.addr, bp.orig_byte);
-                println!("Breakpoint {} hit at 0x{:016x}!", i, bp.addr);
-                /* reset the byte */
                 self.poke_byte_at(bp.addr, bp.orig_byte);
 
-                /* modify RIP to retry the instruction */
                 user.regs.rip = rip;
                 self.write_user_struct(user);
                 return;
             }
         }
 
-        panic!("handling a breakpoint without data");
+        panic!("oops");
     }
 }
