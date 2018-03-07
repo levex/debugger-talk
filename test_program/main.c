@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 static int target;
 
@@ -31,7 +32,7 @@ main(int argc, char **argv)
 {
     srand(time(NULL));
 
-    printf("Hello, SCALE 18x!\n");
+    printf("Hello, SCALE 16x!\n");
 
     game();
 
