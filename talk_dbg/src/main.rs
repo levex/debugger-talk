@@ -11,7 +11,7 @@ use capstone::*;
 use capstone::arch::*;
 
 fn usage(name: &String) {
-    println!("talkDbg -- a simple debugger written at linux.conf.au 2018");
+    println!("talkDbg -- a simple debugger written at SCALE 16x");
     println!("                ... and some beforehand");
     println!("                Licensed under the MIT license");
     println!("                Author: Levente Kurusa <lkurusa@acm.org>");
